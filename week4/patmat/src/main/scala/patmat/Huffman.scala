@@ -169,8 +169,9 @@ object Huffman {
    * The parameter `chars` is an arbitrary text. This function extracts the character
    * frequencies from that text and creates a code tree based on them.
    */
-    def createCodeTree(chars: List[Char]): CodeTree = ???
-  
+    def createCodeTree(chars: List[Char]): CodeTree =
+      until(singleton, combine)(makeOrderedLeafList(times(chars)))(0)
+
 
   // Part 3: Decoding
 
@@ -180,7 +181,30 @@ object Huffman {
    * This function decodes the bit sequence `bits` using the code tree `tree` and returns
    * the resulting list of characters.
    */
-    def decode(tree: CodeTree, bits: List[Bit]): List[Char] = ???
+    def decode(tree: CodeTree, bits: List[Bit]): List[Char] = {
+      var result = ListBuffer[Char]()
+
+      var tempTree = tree
+
+      var i = 0
+      var stop = false
+      while (!stop) {
+        tempTree match {
+          case Leaf(ch, w) =>
+            result += ch
+            tempTree = tree
+            if (i >= bits.length) stop = true
+          case Fork(left, right, chars, w) =>
+            bits(i) match {
+              case 0 => tempTree = left
+              case 1 => tempTree = right
+            }
+            i = i + 1
+        }
+      }
+
+      result.toList
+    }
   
   /**
    * A Huffman coding tree for the French language.
@@ -192,13 +216,13 @@ object Huffman {
   /**
    * What does the secret message say? Can you decode it?
    * For the decoding use the `frenchCode' Huffman tree defined above.
-   */
+    **/
   val secret: List[Bit] = List(0,0,1,1,1,0,1,0,1,1,1,0,0,1,1,0,1,0,0,1,1,0,1,0,1,1,0,0,1,1,1,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,1,0,0,1,0,0,1,0,0,0,1,0,0,0,1,0,1)
 
   /**
    * Write a function that returns the decoded secret
    */
-    def decodedSecret: List[Char] = ???
+    def decodedSecret: List[Char] = decode(frenchCode, secret)
   
 
   // Part 4a: Encoding using Huffman tree
@@ -207,18 +231,57 @@ object Huffman {
    * This function encodes `text` using the code tree `tree`
    * into a sequence of bits.
    */
-    def encode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+    def encode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+      //BFS
+      def traverseUntilFind(queue: scala.collection.mutable.Queue[(CodeTree, Bit)], ch: Char, bits: ListBuffer[Bit]): Unit = {
+        if (queue.nonEmpty) {
+          val pair = queue.dequeue()
+          val tempTree = pair._1
+          val side = pair._2
+
+          tempTree match {
+            case Leaf(char, w) =>
+              if (char == ch) bits += side
+              else traverseUntilFind(queue, ch, bits)
+            case Fork(left, right, chars, w) =>
+              if (left != null) queue += ((left, 0))
+              if (right != null) queue += ((right, 1))
+              if (chars.contains(ch)) bits += side
+              traverseUntilFind(queue, ch, bits)
+          }
+        }
+      }
+
+      val result = ListBuffer[Bit]()
+      text.foreach(ch => {
+        val queue = scala.collection.mutable.Queue[(CodeTree, Bit)]((tree, -1))
+        val bits = ListBuffer[Bit]()
+        traverseUntilFind(queue, ch, bits)
+
+        if (bits.nonEmpty) result ++= bits.tail
+      })
+
+      result.toList
+    }
   
   // Part 4b: Encoding using code table
 
   type CodeTable = List[(Char, List[Bit])]
+  def CodeTable(xs: (Char, List[Bit])*) = List(xs: _*)
 
   /**
    * This function returns the bit sequence that represents the character `char` in
    * the code table `table`.
    */
-    def codeBits(table: CodeTable)(char: Char): List[Bit] = ???
-  
+    def codeBits(table: CodeTable)(char: Char): List[Bit] = {
+      val elements = table.find(pair => pair._1 == char)
+      if (elements.nonEmpty) elements.head._2
+      else List()
+    }
+
+  def prependBitToBitCode(codeTree: CodeTree, bit: Bit): CodeTable =
+    convert(codeTree).map{case x => (x._1, bit :: x._2)}
+
   /**
    * Given a code tree, create a code table which contains, for every character in the
    * code tree, the sequence of bits representing that character.
@@ -227,14 +290,61 @@ object Huffman {
    * a valid code tree that can be represented as a code table. Using the code tables of the
    * sub-trees, think of how to build the code table for the entire tree.
    */
-    def convert(tree: CodeTree): CodeTable = ???
+    def convert(tree: CodeTree): CodeTable = {
+      tree match {
+        case Fork(left, right, _, _) =>
+          left match {
+            case Leaf(chl, _) =>
+              right match {
+                case Leaf(chr, _) =>
+                  mergeCodeTables(CodeTable((chl, List(0))), CodeTable((chr, List(1))))
+                case Fork(_, _, _, _) =>
+                  mergeCodeTables(CodeTable((chl, List(0))), prependBitToBitCode(right, 1))
+                case default =>
+                  CodeTable((chl, List(0)))
+              }
+            case Fork(_, _, _, _) =>
+              right match {
+                case Leaf(chr, _) =>
+                  mergeCodeTables(prependBitToBitCode(left, 0), CodeTable((chr, List(1))))
+                case Fork(_, _, _, _) =>
+                  mergeCodeTables(prependBitToBitCode(left, 0), prependBitToBitCode(right, 1))
+                case default =>
+                  prependBitToBitCode(left, 0)
+              }
+            case default =>
+              right match {
+                case Leaf(chr, _) =>
+                  CodeTable((chr, List(1)))
+                case Fork(_, _, _, _) =>
+                  prependBitToBitCode(right, 1)
+                case default =>
+                  CodeTable()
+              }
+          }
+        case default =>
+          CodeTable()
+      }
+    }
   
   /**
    * This function takes two code tables and merges them into one. Depending on how you
    * use it in the `convert` method above, this merge method might also do some transformations
    * on the two parameter code tables.
    */
-    def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = ???
+    def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = {
+      var result = ListBuffer[(Char, List[Bit])]()
+
+      a.foreach(aPair => {
+        result += aPair
+      })
+
+      b.foreach(bPair => {
+        result += bPair
+      })
+
+      result.toList
+    }
   
   /**
    * This function encodes `text` according to the code tree `tree`.
@@ -242,5 +352,11 @@ object Huffman {
    * To speed up the encoding process, it first converts the code tree to a code table
    * and then uses it to perform the actual encoding.
    */
-    def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+    def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+      val codeTable = convert(tree)
+
+      var result = ListBuffer[Bit]()
+      text.foreach(ch => result ++= codeBits(codeTable)(ch))
+      result.toList
+    }
   }

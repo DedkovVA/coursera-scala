@@ -48,9 +48,21 @@ class HuffmanSuite extends FunSuite {
   }
 
 
+  test("decode simple test") {
+    new TestTrees {
+      assert(decode(t1, List(0, 1)) === "ab".toList)
+    }
+  }
+
   test("decode and encode a very short text should be identity") {
     new TestTrees {
-//      assert(decode(t1, encode(t1)("ab".toList)) === "ab".toList)
+      assert(decode(t1, encode(t1)("ab".toList)) === "ab".toList)
+    }
+  }
+
+  test("decode and quickEncode a very short text should be identity") {
+    new TestTrees {
+      assert(decode(t1, quickEncode(t1)("ab".toList)) === "ab".toList)
     }
   }
 
@@ -68,12 +80,12 @@ class HuffmanSuite extends FunSuite {
     assert(makeOrderedLeafList(List()) == List())
   }
 
-  test("unit test") {
-    val i = 0
-    val inner = {
-      println("MARK")
-      { i => i+1 }
-    }
+  test("decoded secret") {
+    println(decodedSecret.mkString)
+  }
+
+  test("decodedSecret with quickEncode") {
+    assert(quickEncode(frenchCode)(decodedSecret) === secret)
   }
 
 /*  test("until") {
