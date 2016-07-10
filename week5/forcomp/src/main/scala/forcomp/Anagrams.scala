@@ -1,5 +1,8 @@
 package forcomp
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+
 
 object Anagrams {
 
@@ -34,10 +37,12 @@ object Anagrams {
    *
    *  Note: you must use `groupBy` to implement this method!
    */
-  def wordOccurrences(w: Word): Occurrences = ???
+  def wordOccurrences(w: Word): Occurrences =
+    List(w.toLowerCase.toCharArray.groupBy((ch: Char) => ch).map((entry) => {(entry._1, entry._2.length)}).toSeq.sortBy(_._1):_*)
 
   /** Converts a sentence into its character occurrence list. */
-  def sentenceOccurrences(s: Sentence): Occurrences = ???
+  def sentenceOccurrences(s: Sentence): Occurrences =
+    wordOccurrences(s.mkString.toLowerCase)
 
   /** The `dictionaryByOccurrences` is a `Map` from different occurrences to a sequence of all
    *  the words that have that occurrence count.
@@ -54,10 +59,11 @@ object Anagrams {
    *    List(('a', 1), ('e', 1), ('t', 1)) -> Seq("ate", "eat", "tea")
    *
    */
-  lazy val dictionaryByOccurrences: Map[Occurrences, List[Word]] = ???
+  lazy val dictionaryByOccurrences: Map[Occurrences, List[Word]] =
+    dictionary.groupBy(word => wordOccurrences(word))
 
   /** Returns all the anagrams of a given word. */
-  def wordAnagrams(word: Word): List[Word] = ???
+  def wordAnagrams(word: Word): List[Word] = dictionaryByOccurrences.get(wordOccurrences(word)).get
 
   /** Returns the list of all subsets of the occurrence list.
    *  This includes the occurrence itself, i.e. `List(('k', 1), ('o', 1))`
@@ -81,7 +87,56 @@ object Anagrams {
    *  Note that the order of the occurrence list subsets does not matter -- the subsets
    *  in the example above could have been displayed in some other order.
    */
-  def combinations(occurrences: Occurrences): List[Occurrences] = ???
+  //todo comments, renames, refactor functional style
+  def combinations(occurrences: Occurrences): /*mutable.Map[Int, mutable.Set[List[Char]]]*/List[Occurrences] = {
+    val chars = occurrences.map(entry => entry._1)
+
+    val map = mutable.Map[Int, mutable.Set[List[Char]]]((0, mutable.Set(List())))
+    for (i <- 1 to chars.length) {
+      map(i) = mutable.Set()
+
+      val set = map.get(i - 1).get
+      set.foreach(charList => {
+        chars.foreach(ch => {
+          if (charList.isEmpty || charList.last < ch) {
+            val charListCandidate = charList :+ ch
+            if (!map.get(i).get.contains(charListCandidate)) {
+              map.get(i).get.add(charListCandidate)
+            }
+          }
+        })
+      })
+    }
+
+    val occurrencesMap = occurrences.toMap
+
+    //List(('a', 2), ('b', 2)); List(a, b) --> List((1,2),(1,2)), List(a) --> List((1,2))
+
+    //todo iterate by map entries
+    var result = ListBuffer[ListBuffer[(Char, Int)]]()
+    for (i <- 0 to chars.length) {
+
+      map.get(i).get.foreach(charList => {
+
+        var charListCombinations = ListBuffer[ListBuffer[(Char, Int)]](ListBuffer[(Char, Int)]())
+        charList.foreach(ch => {
+
+          var swapCharListCombinations = ListBuffer[ListBuffer[(Char, Int)]]()
+          for (j <- 1 to occurrencesMap.get(ch).get) {
+            charListCombinations.foreach(chFreqList => {
+              swapCharListCombinations += (chFreqList :+ (ch, j))
+            })
+          }
+          charListCombinations = swapCharListCombinations
+
+        })
+
+        result ++= charListCombinations
+      })
+    }
+
+    result.map(listBuffer => listBuffer.toList).toList
+  }
 
   /** Subtracts occurrence list `y` from occurrence list `x`.
    *
