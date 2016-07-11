@@ -41,9 +41,9 @@ class AnagramsSuite extends FunSuite  {
     assert(wordAnagrams("player").toSet === Set("parley", "pearly", "player", "replay"))
   }
 
-/*  test("pre combinations") {
-    println(combinations(List(('a', 2), ('b', 2))))
-  }*/
+  test("pre combinations") {
+    println(charCombinations(List(('a', 2), ('b', 2))))
+  }
 
 
 /*  test("subtract: lard - r") {

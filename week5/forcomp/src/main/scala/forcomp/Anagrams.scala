@@ -87,55 +87,55 @@ object Anagrams {
    *  Note that the order of the occurrence list subsets does not matter -- the subsets
    *  in the example above could have been displayed in some other order.
    */
-  //todo comments, renames, refactor functional style
-  def combinations(occurrences: Occurrences): /*mutable.Map[Int, mutable.Set[List[Char]]]*/List[Occurrences] = {
+  def combinations(occurrences: Occurrences): List[Occurrences] = {
+    val numToCharCombs = charCombinations(occurrences)
+
+    val occurrencesMap = occurrences.toMap
+    var result = List[List[(Char, Int)]]()
+
+    numToCharCombs.foreach(entry => entry._2.foreach(charList => {
+      //if occurrences = List((a, 2), (b, 2)) and charList = List(a) then charListCombinations = List((a, 1), (a, 2))
+      var charListCombinations = List[List[(Char, Int)]](List[(Char, Int)]())
+      charList.foreach(ch => {
+        var swapCharListCombinations = List[List[(Char, Int)]]()
+        for (j <- 1 to occurrencesMap.get(ch).get)
+          charListCombinations.foreach(chFreqList =>
+            swapCharListCombinations :+= (chFreqList :+ (ch, j))
+          )
+        charListCombinations = swapCharListCombinations
+      })
+      result ++= charListCombinations
+    }))
+
+    result
+  }
+
+  /**List((a, na), (b, nb), (c, nc)) --> Map(
+    * 0 --> Set(List()),
+    * 1 --> Set(List(a), List(b), List(c)),
+    * 2 --> Set(List(a, b), List(b, c), List(a, c))
+    * 3 --> Set(List(a, b, c))
+    * )*/
+  def charCombinations(occurrences: Occurrences): mutable.Map[Int, mutable.Set[List[Char]]] = {
     val chars = occurrences.map(entry => entry._1)
+    val numToCharCombs = mutable.Map[Int, mutable.Set[List[Char]]]((0, mutable.Set(List())))
 
-    val map = mutable.Map[Int, mutable.Set[List[Char]]]((0, mutable.Set(List())))
     for (i <- 1 to chars.length) {
-      map(i) = mutable.Set()
+      numToCharCombs(i) = mutable.Set()
 
-      val set = map.get(i - 1).get
-      set.foreach(charList => {
+      val prevCombs = numToCharCombs(i - 1)
+      prevCombs.foreach(charList => {
         chars.foreach(ch => {
           if (charList.isEmpty || charList.last < ch) {
             val charListCandidate = charList :+ ch
-            if (!map.get(i).get.contains(charListCandidate)) {
-              map.get(i).get.add(charListCandidate)
-            }
+            if (!numToCharCombs(i).contains(charListCandidate))
+              numToCharCombs(i).add(charListCandidate)
           }
         })
       })
     }
 
-    val occurrencesMap = occurrences.toMap
-
-    //List(('a', 2), ('b', 2)); List(a, b) --> List((1,2),(1,2)), List(a) --> List((1,2))
-
-    //todo iterate by map entries
-    var result = ListBuffer[ListBuffer[(Char, Int)]]()
-    for (i <- 0 to chars.length) {
-
-      map.get(i).get.foreach(charList => {
-
-        var charListCombinations = ListBuffer[ListBuffer[(Char, Int)]](ListBuffer[(Char, Int)]())
-        charList.foreach(ch => {
-
-          var swapCharListCombinations = ListBuffer[ListBuffer[(Char, Int)]]()
-          for (j <- 1 to occurrencesMap.get(ch).get) {
-            charListCombinations.foreach(chFreqList => {
-              swapCharListCombinations += (chFreqList :+ (ch, j))
-            })
-          }
-          charListCombinations = swapCharListCombinations
-
-        })
-
-        result ++= charListCombinations
-      })
-    }
-
-    result.map(listBuffer => listBuffer.toList).toList
+    numToCharCombs
   }
 
   /** Subtracts occurrence list `y` from occurrence list `x`.
