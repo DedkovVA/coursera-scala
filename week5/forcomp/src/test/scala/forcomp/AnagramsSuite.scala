@@ -46,12 +46,19 @@ class AnagramsSuite extends FunSuite  {
   }
 
 
-/*  test("subtract: lard - r") {
+  test("subtract: lard - r") {
     val lard = List(('a', 1), ('d', 1), ('l', 1), ('r', 1))
     val r = List(('r', 1))
     val lad = List(('a', 1), ('d', 1), ('l', 1))
     assert(subtract(lard, r) === lad)
-  }*/
+  }
+
+  test("subtract: lard - r 2") {
+    val lard = List(('a', 3), ('d', 1), ('l', 1), ('r', 2))
+    val r = List(('a', 1), ('r', 1))
+    val lad = List(('a', 2), ('d', 1), ('l', 1), ('r', 1))
+    assert(subtract(lard, r) === lad)
+  }
 
 
   test("combinations: []") {

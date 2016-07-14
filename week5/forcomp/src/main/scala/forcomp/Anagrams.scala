@@ -38,7 +38,7 @@ object Anagrams {
    *  Note: you must use `groupBy` to implement this method!
    */
   def wordOccurrences(w: Word): Occurrences =
-    List(w.toLowerCase.toCharArray.groupBy((ch: Char) => ch).map((entry) => {(entry._1, entry._2.length)}).toSeq.sortBy(_._1):_*)
+    List(w.toLowerCase.toCharArray.groupBy((ch: Char) => ch).map(entry => (entry._1, entry._2.length)).toSeq.sortBy(_._1):_*)
 
   /** Converts a sentence into its character occurrence list. */
   def sentenceOccurrences(s: Sentence): Occurrences =
@@ -148,7 +148,18 @@ object Anagrams {
    *  Note: the resulting value is an occurrence - meaning it is sorted
    *  and has no zero-entries.
    */
-  def subtract(x: Occurrences, y: Occurrences): Occurrences = ???
+  def subtract(x: Occurrences, y: Occurrences): Occurrences = {
+    var xMap = x.toMap
+
+    val xCharList = x.map(entry => entry._1)
+    y.foreach(chFreq =>
+      if (xCharList.contains(chFreq._1))
+//        if (xMap(chFreq._1) >= chFreq._2)
+          xMap = xMap.updated(chFreq._1, xMap(chFreq._1) - chFreq._2)
+    )
+
+    xMap.filter(chFreq => chFreq._2 != 0).toList
+  }
 
   /** Returns a list of all anagram sentences of the given sentence.
    *
@@ -190,5 +201,7 @@ object Anagrams {
    *
    *  Note: There is only one anagram of an empty sentence.
    */
-  def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
+  def sentenceAnagrams(sentence: Sentence): List[Sentence] = {
+    null
+  }
 }
