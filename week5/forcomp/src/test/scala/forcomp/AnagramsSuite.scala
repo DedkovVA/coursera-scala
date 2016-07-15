@@ -45,6 +45,22 @@ class AnagramsSuite extends FunSuite  {
     println(charCombinations(List(('a', 2), ('b', 2))))
   }
 
+  test("sort combinations print") {
+    println("sort combinations print 1")
+
+    val list1 = List(List(('a', 2)), List(('a', 1)), List())
+    val list2 = sortOccurrencesList(list1)
+    list2.foreach(println)
+    assert(list2 === List(List(), List(('a', 1)), List(('a', 2))))
+
+    println("sort combinations print 2")
+
+    val list3 = List(List(('a', 2), ('b', 3)), List(('a', 1)), List(), List(('a', 1), ('b', 5)), List(), List(('a', 2)), List(('a', 2), ('b', 4)), List(('a', 2), ('b', 3)), List(('b', 1)))
+    val list4 = sortOccurrencesList(list3)
+    list4.foreach(println)
+    assert(list4 === List(List(), List(), List(('a', 1)), List(('a', 1), ('b', 5)), List(('a', 2)), List(('a', 2), ('b', 3)), List(('a', 2), ('b', 3)), List(('a', 2), ('b', 4)), List(('b', 1))))
+  }
+
 
   test("subtract: lard - r") {
     val lard = List(('a', 1), ('d', 1), ('l', 1), ('r', 1))
@@ -81,8 +97,13 @@ class AnagramsSuite extends FunSuite  {
     assert(combinations(abba).toSet === abbacomb.toSet)
   }
 
+/*  test("yes man") {
+    println("yes man")
+    sentenceAnagrams(List("yes", "man")).foreach(println)
+  }*/
 
-  /*test("sentence anagrams: []") {
+
+  test("sentence anagrams: []") {
     val sentence = List()
     assert(sentenceAnagrams(sentence) === List(Nil))
   }
@@ -112,6 +133,14 @@ class AnagramsSuite extends FunSuite  {
       List("Linux", "rulez")
     )
     assert(sentenceAnagrams(sentence).toSet === anas.toSet)
-  }*/
+  }
+
+  test("sentence anagrams: zzz") {
+    val sentence = List("en", "en", "as")
+    println
+    println("zzz")
+    println
+    sentenceAnagrams(sentence).foreach(println)
+  }
 
 }

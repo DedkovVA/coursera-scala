@@ -110,6 +110,29 @@ object Anagrams {
     result
   }
 
+  def sortWithOcc(occ1: Occurrences, occ2: Occurrences): Boolean = {
+    if (occ1.isEmpty && occ2.nonEmpty) true
+    else if (occ1.nonEmpty && occ2.isEmpty) false
+    else if (occ1.isEmpty && occ2.isEmpty) true
+    else {
+      val len = Math.min(occ1.length, occ2.length)
+      for (i <- 0 until len) {
+        if (occ1(i)._1 < occ2(i)._1) return true
+        else if (occ1(i)._1 > occ2(i)._1) return false
+        else {
+          if (occ1(i)._2 < occ2(i)._2) return true
+          else if (occ1(i)._2 > occ2(i)._2) return false
+        }
+      }
+      if (occ1.length <= occ2.length) true
+      else false
+    }
+  }
+
+  def sortOccurrencesList(occurrencesList: List[Occurrences]): List[Occurrences] = {
+    occurrencesList.sortWith((occ1, occ2) => sortWithOcc(occ1, occ2))
+  }
+
   /**List((a, na), (b, nb), (c, nc)) --> Map(
     * 0 --> Set(List()),
     * 1 --> Set(List(a), List(b), List(c)),
@@ -201,7 +224,106 @@ object Anagrams {
    *
    *  Note: There is only one anagram of an empty sentence.
    */
+
+  //todo шаг 1 -
+  //получить все возможные упорядоченные(?) комбинации List[Occurrences] из словаря:
+  //Set[List[Occurrences]]
+  //List[Occurrences] - упорядочивать лексикографически, по длине Occurrences
+
+    //todo шаг 1.1 - посчитать combinations (упорядочивать их лексикографически, по длине Occurrences)
+    //todo шаг 1.2 - среди combinations найти те, которые есть в словаре
+    //обновить словарь этими значениями (в конце процедуры)
+    //todo шаг 1.3 - subtract эти комбинации, повторить процедуру для каждой ветви
+    //на каждой итерации проверять, что данное решение еще не содержится в дереве решиений
+    //например, (a,b) == (b,a) для Occurrences a,b, поэтому нет смысла рассматривать (b,a),
+    //если (a,b) уже есть в дереве решений
+
+  //todo шаг 2 -
+  // считать комбинации слов (в т.ч. перестановки слов в прелложении;
+  // учесть, что в предложении одно слово может встречаться больше одного раза)
+
   def sentenceAnagrams(sentence: Sentence): List[Sentence] = {
-    null
+    if (sentence.isEmpty) return List(Nil)
+
+    val sntncOccurrences = sentenceOccurrences(sentence)
+
+    val occurrencesCombinations = ListBuffer[List[Occurrences]]()
+    val input = mutable.Queue[(List[Occurrences], List[Occurrences], Occurrences)]((List[Occurrences](), dictionaryByOccurrences.toList.map(p => p._1), sntncOccurrences))
+
+    while (input.nonEmpty) {
+      calcStep(input, occurrencesCombinations)
+    }
+
+    val result = ListBuffer[Sentence]()
+
+    occurrencesCombinations.foreach(occurrencesList => result ++= occurrencesListToSentenceList(occurrencesList))
+
+    result.toList
+  }
+
+  //todo сделать перестановки слов в предложении. учесть, что могут быть два одинаковых слова
+  def occurrencesListToSentenceList(occurrencesList: List[Occurrences]): List[Sentence] = {
+    var result1 = ListBuffer[Sentence](List())
+    var result2 = ListBuffer[Sentence]()
+
+    for (i <- occurrencesList.indices) {
+      val wordList = dictionaryByOccurrences(occurrencesList(i))
+      result2 = ListBuffer[Sentence]()
+      for (j <- wordList.indices) {
+        result1.foreach(tempWordList => result2 += (tempWordList :+ wordList(j)))
+      }
+      result1 = result2
+    }
+
+    val result = ListBuffer[Sentence]()
+    result2.foreach(sentence => result ++= permutateWordsInSentence(sentence))
+    result.toList
+  }
+
+  def permutateWordsInSentence(sentence: Sentence): List[Sentence] = {
+    val result = mutable.Set[Sentence](sentence)
+    sentence.permutations.foreach(s => result += s)
+    result.toList
+  }
+
+  def combinationsWithTails(occurrences: Occurrences, dictionary: List[Occurrences]): List[(Occurrences, Occurrences)] = {
+    var result = List[(Occurrences, Occurrences)]()
+
+    combinations(occurrences).foreach(occ => if (dictionary.contains(occ)) result :+= (occ, subtract(occurrences, occ)))
+
+    result
+  }
+
+  def calcStep(input: mutable.Queue[(List[Occurrences], List[Occurrences], Occurrences)], output: ListBuffer[List[Occurrences]]): Unit = {
+    if (input.isEmpty) return
+
+    val first = input.dequeue
+
+    val preResult = first._1
+    val dictionary = first._2
+    val tail = first._3
+
+    val combinationsPlusTails = combinationsWithTails(tail, dictionary)
+
+    //в словаре не нашлось слов для данного остатка tail
+    if (combinationsPlusTails.isEmpty) {
+//      recur(input, output)
+      return
+    }
+
+    val newDictionary = combinationsPlusTails.map(e => e._1)
+
+    combinationsPlusTails.foreach(e => {
+      val sortedList = sortOccurrencesList(preResult :+ e._1)
+
+      if (e._2.isEmpty && !output.contains(sortedList)) {
+        output += sortedList
+      }
+      else if (e._2.nonEmpty && !input.map(e => e._1).contains(sortedList)) {
+        input.enqueue((sortedList, newDictionary, e._2))
+      }
+    })
+
+//    recur(input, output)
   }
 }
