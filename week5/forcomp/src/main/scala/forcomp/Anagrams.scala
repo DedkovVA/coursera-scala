@@ -180,7 +180,7 @@ object Anagrams {
           occurrencesMap = occurrencesMap.updated(chFreq._1, occurrencesMap(chFreq._1) - chFreq._2)
     )
 
-    occurrencesMap.filter(chFreq => chFreq._2 != 0).toList
+    List(occurrencesMap.filter(chFreq => chFreq._2 != 0).toSeq.sortBy(_._1):_*)
   }
 
   /** Returns a list of all anagram sentences of the given sentence.
