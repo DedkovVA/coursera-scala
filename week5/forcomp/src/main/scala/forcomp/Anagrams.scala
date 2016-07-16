@@ -1,5 +1,6 @@
 package forcomp
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -239,9 +240,7 @@ object Anagrams {
     val queue = mutable.Queue[(List[Occurrences], List[Occurrences], Occurrences)] (
       (List[Occurrences](), dictionaryByOccurrences.toList.map(p => p._1), occurrencesForSentence) )
 
-    while (queue.nonEmpty) {
-      processNextQueueElement(queue, occurrencesCombinations)
-    }
+    processNextQueueElement(queue, occurrencesCombinations)
 
     //шаг 2
     val result = ListBuffer[Sentence]()
@@ -281,6 +280,7 @@ object Anagrams {
     что данное решение еще там не содержится.
     Например, (a,b) == (b,a) для Occurrences a,b, поэтому нет смысла рассматривать (b,a),
     если (a,b) уже есть в списке */
+  @tailrec
   def processNextQueueElement(input: mutable.Queue[(List[Occurrences], List[Occurrences], Occurrences)],
                               output: ListBuffer[List[Occurrences]]): Unit = {
     if (input.isEmpty)
@@ -295,19 +295,19 @@ object Anagrams {
     val combinationsWithRemainders =
       combinations(remainder).filter(o => dictionary.contains(o)).map(o => (o, subtract(remainder, o)))//шаг 1,2,3
 
-    //в словаре не нашлось слов для данного остатка remainder
-    if (combinationsWithRemainders.isEmpty)
-      return
+    if (combinationsWithRemainders.nonEmpty) {
+      val newDictionary = combinationsWithRemainders.map(e => e._1) //шаг 2
 
-    val newDictionary = combinationsWithRemainders.map(e => e._1)//шаг 2
+      combinationsWithRemainders.foreach(e => {
+        val sortedList = sortOccurrencesList(occurrencesCombinations :+ e._1)
 
-    combinationsWithRemainders.foreach(e => {
-      val sortedList = sortOccurrencesList(occurrencesCombinations :+ e._1)
+        if (e._2.isEmpty && !output.contains(sortedList))
+          output += sortedList
+        else if (e._2.nonEmpty && !input.map(e => e._1).contains(sortedList))
+          input.enqueue((sortedList, newDictionary, e._2))
+      })
+    }
 
-      if (e._2.isEmpty && !output.contains(sortedList))
-        output += sortedList
-      else if (e._2.nonEmpty && !input.map(e => e._1).contains(sortedList))
-        input.enqueue((sortedList, newDictionary, e._2))
-    })
+    processNextQueueElement(input, output)
   }
 }
